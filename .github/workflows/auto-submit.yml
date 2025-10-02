@@ -1,0 +1,29 @@
+name: Auto Form Submit
+
+on:
+  schedule:
+    # chạy 3 lần/ngày (10h sáng, 4h chiều, 10h tối giờ VN) + thêm 5:30 chiều
+    - cron: "0 3 * * *"    # 10:00 VN
+    - cron: "0 9 * * *"    # 16:00 VN
+    - cron: "30 10 * * *"  # 17:30 VN
+    - cron: "0 15 * * *"   # 22:00 VN
+  workflow_dispatch:
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run script
+        run: python main.py
