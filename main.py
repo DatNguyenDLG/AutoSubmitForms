@@ -1,56 +1,34 @@
-# submit_many.py
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-import time, random, datetime
+import time, random
+import requests
 
-# ----------------- CẤU HÌNH -----------------
-FORM_URL = "https://forms.office.com/Pages/ResponsePage.aspx?id=qJfY6AD0JUaFim865idUK4WNzlqwLltJn-0vMv0IEfFUMzZTQVEwT1JEQ1JYVERKUFg4Tk01VU9UTS4u&origin=Invitation&channel=0"
+SURVEY_URL = "https://www.surveymonkey.com/r/Draeger-VN-Medical-Maintenance"
+NUM_SUBMISSIONS = 2
+MIN_DELAY = 10
+MAX_DELAY = 15
 
-num_submissions = 2       # số lần muốn submit
-min_delay = 5             # delay tối thiểu giữa 2 lượt (giây)
-max_delay = 12            # delay tối đa giữa 2 lượt (giây)
-
-PROXIES = []  # ví dụ: ["1.2.3.4:8080"]
-
-TEXT_SAMPLE = "AutoTest"
-FORM_DATE = None
-# --------------------------------------------
-
+PROXIES = [
+    "23.227.39.77:8080",
+    "47.243.181.85:8080",
+    "188.42.88.238:8080"    # ... thêm proxy khác ...
+]
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15"
 ]
-
-def get_date_string():
-    if FORM_DATE:
-        return FORM_DATE
-    d = datetime.date.today()
-    return f"{d.month}/{d.day}/{d.year}"
-
-def click_element(driver, el):
-    try:
-        el.click()
-        return True
-    except Exception:
-        try:
-            driver.execute_script("arguments[0].click();", el)
-            return True
-        except Exception:
-            return False
 
 def prepare_chrome_options(proxy=None, ua=None, headless=True):
     opts = Options()
     if headless:
         opts.add_argument("--headless=new")
-    opts.add_argument("--no-sandbox")
-    opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--disable-gpu")
+    opts.add_argument("--no-sandbox")
     if ua:
         opts.add_argument(f"--user-agent={ua}")
     if proxy:
@@ -60,119 +38,99 @@ def prepare_chrome_options(proxy=None, ua=None, headless=True):
     return opts
 
 def run_single_submit(proxy=None, ua=None, verbose=True):
-    opts = prepare_chrome_options(proxy=proxy, ua=ua, headless=True)
+    opts = prepare_chrome_options(proxy=proxy, ua=ua, headless=False)
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opts)
     wait = WebDriverWait(driver, 20)
     success = False
     try:
-        driver.get(FORM_URL)
-        wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div[data-automation-id='questionItem']")))
-        time.sleep(0.7)
+        driver.get(SURVEY_URL)
+        wait.until(EC.presence_of_element_located((By.TAG_NAME, "form")))
 
-        items = driver.find_elements(By.CSS_SELECTOR, "div[data-automation-id='questionItem']")
-        if verbose: print(f"Found {len(items)} questions")
+        # Q1. Mức độ hài lòng của bạn về Bảo trì, Bảo dưỡng của Dräger
+        driver.find_element(By.CSS_SELECTOR, "input[value='2964384505']").click()
 
-        for idx, item in enumerate(items, start=1):
-            filled = False
-            # Date
-            try:
-                date_el = item.find_element(By.CSS_SELECTOR, "input[aria-label='Date picker'], input[id^='DatePicker']")
-                date_str = get_date_string()
-                date_el.clear()
-                date_el.send_keys(date_str)
-                if verbose: print(f"Q{idx}: filled date {date_str}")
-                filled = True
-            except Exception:
-                pass
+        # Q2. Dịch vụ trả lời qua điện thoại của Dräger
+        driver.find_element(By.CSS_SELECTOR, "input[name='447341760_2964384511'][value='2964384515']").click()
 
-            # Text
-            if not filled:
-                try:
-                    t = item.find_element(By.CSS_SELECTOR, "input[data-automation-id='textInput'], textarea, input[type='text']:not([aria-label='Date picker'])")
-                    aria = (t.get_attribute("aria-label") or "").lower()
-                    if "email" in aria:
-                        t.send_keys("test@example.com")
-                    else:
-                        t.send_keys(f"{TEXT_SAMPLE} #{idx}")
-                    if verbose: print(f"Q{idx}: filled text")
-                    filled = True
-                except Exception:
-                    pass
+        # Q3. Kỹ sư của Dräger có thái độ làm việc chuyên nghiệp tại nơi làm việc không?
+        driver.find_element(By.CSS_SELECTOR, "input[name='447341761_2964384516'][value='2964384520']").click()
 
-            # Choice input
-            if not filled:
-                try:
-                    choice_input = item.find_element(By.CSS_SELECTOR, "div[data-automation-id='choiceItem'] input[type='radio'], div[data-automation-id='choiceItem'] input[type='checkbox']")
-                    ok = click_element(driver, choice_input)
-                    if verbose: print(f"Q{idx}: clicked first input choice (ok={ok})")
-                    filled = True
-                except Exception:
-                    pass
+        # Q4. Chất lượng chuyên môn kỹ thuật của kỹ sư Dräger
+        driver.find_element(By.CSS_SELECTOR, "input[name='447341762_2964384521'][value='2964384525']").click()
 
-            # Choice div
-            if not filled:
-                try:
-                    choice_div = item.find_element(By.CSS_SELECTOR, "div[data-automation-id='choiceItem']")
-                    ok = click_element(driver, choice_div)
-                    if verbose: print(f"Q{idx}: clicked choice div (ok={ok})")
-                    filled = True
-                except Exception:
-                    pass
+        # Q5. Kỹ sư của Dräger có giữ gìn vệ sinh cẩn thận và tuân thủ các quy định an toàn khi làm việc hay không?
+        driver.find_element(By.CSS_SELECTOR, "input[name='447341763_2964384526'][value='2964384530']").click()
 
-            # Fallback role radio
-            if not filled:
-                try:
-                    r = item.find_element(By.CSS_SELECTOR, "div[role='radio'], div[role='option'], label[role='radio']")
-                    ok = click_element(driver, r)
-                    if verbose: print(f"Q{idx}: clicked role-radio (ok={ok})")
-                    filled = True
-                except Exception:
-                    pass
+        # Q6. Sự đáp ứng linh phụ kiện
+        driver.find_element(By.CSS_SELECTOR, "input[name='447341764_2964384531'][value='2964384535']").click()
 
-            if not filled and verbose:
-                print(f"Q{idx}: nothing filled (skipped)")
+        # Q7. Tần suất bảo trì thiết bị hoặc thời gian thực hiện bảo trì
+        driver.find_element(By.CSS_SELECTOR, "input[name='447341765_2964384536'][value='2964384540']").click()
 
-        # Submit
-        submit_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-automation-id='submitButton'], button[type='submit']")))
-        click_element(driver, submit_btn)
-        if verbose: print("Clicked submit")
+        # Q8. Cách báo cáo về tình hình bảo trì và cách giao tiếp
+        driver.find_element(By.CSS_SELECTOR, "input[name='451601467_2991507241'][value='2991507245']").click()
 
-        # Confirm
-        try:
-            thank = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-automation-id='thankYouMessage'], div[data-automation-id='thankYouPage']")))
-            if verbose: print("Submission confirmed:", thank.text.strip())
-            success = True
-        except Exception:
-            body = driver.find_element(By.TAG_NAME, "body").text
-            if any(k in body for k in ["submitted", "Thank", "Thanks", "đã gửi", "cảm ơn"]):
-                if verbose: print("Submission likely successful (body text).")
-                success = True
-            else:
-                if verbose: print("Submission uncertain.")
-                success = False
+        # Q9. Tính linh hoạt và hợp tác của nhân viên Dräger khi trả lời bạn
+        driver.find_element(By.CSS_SELECTOR, "input[name='447341770_2964384555'][value='2964384559']").click()
 
-    except Exception as e_main:
-        if verbose: print("Error in run_single_submit:", e_main)
+        # Q10. Sự đáp ứng của thiết bị Dräger
+        driver.find_element(By.CSS_SELECTOR, "input[name='451601498_2991507409'][value='2991507413']").click()
+
+        # Q11. Công việc có được thực hiện theo hướng dẫn An toàn lao động hay không?
+        driver.find_element(By.CSS_SELECTOR, "input[name='447341771'][value='2964384560']").click()
+
+        # Q12. Bạn sẽ giới thiệu về Dräger với đồng nghiệp?
+        driver.find_element(By.CSS_SELECTOR, "input[name='447341766_2964384541'][value='2964384509']").click()
+
+        # Q13. Nếu bạn có nhu cầu liên hệ với đại diện của Dräger, vui lòng cung cấp email của bạn tại đây.
+        driver.find_element(By.CSS_SELECTOR, "input[name='447341769_2964384551']").send_keys(f"test{random.randint(1000,9999)}@gmail.com")
+
+        # Q14. Bạn có ý kiến nào khác hay không?
+        driver.find_element(By.CSS_SELECTOR, "textarea[name='472992789']").send_keys("Tôi rất hài lòng về dịch vụ của Dräger Việt Nam.")
+        delay = random.uniform(MIN_DELAY, MAX_DELAY)
+        print(f"Waiting {delay:.1f}s before submitting...")
+        time.sleep(delay)
+        driver.find_element(By.CSS_SELECTOR, "button[type='submit']").click()
+        if verbose: print("✅ Đã gửi khảo sát thành công!")
+        success = True
+        time.sleep(3)
+    except Exception as e:
+        if verbose: print("Error:", e)
         success = False
     finally:
-        try:
-            driver.quit()
-        except:
-            pass
+        driver.quit()
     return success
 
-# ----------------- Main loop -----------------
+def is_proxy_working(proxy):
+    try:
+        resp = requests.get("https://api.ipify.org", proxies={
+            "http": f"http://{proxy}",
+            "https": f"http://{proxy}"
+        }, timeout=5)
+        if resp.status_code == 200:
+            print(f"Proxy OK: {proxy}, IP: {resp.text}")
+            return True
+    except Exception as e:
+        print(f"Proxy FAIL: {proxy}, Error: {e}")
+    return False    
+
+# Lọc proxy sống
+PROXIES = [
+    p for p in PROXIES if is_proxy_working(p)
+]
+print(f"Proxy usable: {PROXIES}")
+
+# Main loop
 success_count = 0
-for i in range(num_submissions):
+for i in range(NUM_SUBMISSIONS):
     proxy = random.choice(PROXIES) if PROXIES else None
     ua = random.choice(USER_AGENTS)
-    print(f"\n=== Submission {i+1}/{num_submissions} (proxy={proxy}, ua chosen) ===")
+    print(f"\n=== Submission {i+1}/{NUM_SUBMISSIONS} (proxy={proxy}, ua={ua}) ===")
     ok = run_single_submit(proxy=proxy, ua=ua, verbose=True)
     if ok:
         success_count += 1
-    if i < num_submissions - 1:  # không delay sau lần cuối
-        delay = random.uniform(min_delay, max_delay)
-        print(f"Waiting {delay:.1f}s before next run...")
-        time.sleep(delay)
+    delay = random.uniform(MIN_DELAY, MAX_DELAY)
+    print(f"Waiting {delay:.1f}s before next run...")
+    time.sleep(delay)
 
-print(f"\nDone. Success: {success_count}/{num_submissions}")
+print(f"\nDone. Success: {success_count}/{NUM_SUBMISSIONS}")
