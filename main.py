@@ -14,9 +14,7 @@ MIN_DELAY = 10
 MAX_DELAY = 15
 
 PROXIES = [
-    "23.227.39.77:8080",
-    "47.243.181.85:8080",
-    "188.42.88.238:8080"    # ... thêm proxy khác ...
+
 ]
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -123,10 +121,10 @@ print(f"Proxy usable: {PROXIES}")
 # Main loop
 success_count = 0
 for i in range(NUM_SUBMISSIONS):
-    proxy = random.choice(PROXIES) if PROXIES else None
+    proxy = None
     ua = random.choice(USER_AGENTS)
     print(f"\n=== Submission {i+1}/{NUM_SUBMISSIONS} (proxy={proxy}, ua={ua}) ===")
-    ok = run_single_submit(proxy=proxy, ua=ua, verbose=True)
+    ok = run_single_submit(proxy=None, ua=ua, verbose=True)
     if ok:
         success_count += 1
     delay = random.uniform(MIN_DELAY, MAX_DELAY)
@@ -134,3 +132,4 @@ for i in range(NUM_SUBMISSIONS):
     time.sleep(delay)
 
 print(f"\nDone. Success: {success_count}/{NUM_SUBMISSIONS}")
+
