@@ -54,7 +54,7 @@ def run_single_submit(ua=None, verbose=True):
         driver.find_element(By.CSS_SELECTOR, "input[name='451601498_2991507409'][value='2991507413']").click()
         driver.find_element(By.CSS_SELECTOR, "input[name='447341771'][value='2964384560']").click()
         driver.find_element(By.CSS_SELECTOR, "input[name='447341766_2964384541'][value='2964384509']").click()
-        driver.find_element(By.CSS_SELECTOR, "input[name='447341769_2964384551']").send_keys(f"test{random.randint(1000,9999)}@gmail.com")
+        # driver.find_element(By.CSS_SELECTOR, "input[name='447341769_2964384551']").send_keys(f"{random.randint(1000,9999)}@gmail.com")
         driver.find_element(By.CSS_SELECTOR, "textarea[name='472992789']").send_keys("Tôi rất hài lòng về dịch vụ của Dräger Việt Nam.")
 
         delay = random.uniform(MIN_DELAY, MAX_DELAY)
@@ -85,3 +85,4 @@ for i in range(NUM_SUBMISSIONS):
     time.sleep(delay)
 
 print(f"\nDone. Success: {success_count}/{NUM_SUBMISSIONS}")
+
