@@ -2,7 +2,6 @@ name: Auto Form Submit
 
 on:
   schedule:
-    # chạy 3 lần/ngày (10h sáng, 4h chiều, 10h tối giờ VN) + thêm 5:30 chiều
     - cron: "0 3 * * *"    # 10:00 VN
     - cron: "0 9 * * *"    # 16:00 VN
     - cron: "30 10 * * *"  # 17:30 VN
@@ -20,6 +19,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+
+      - name: Random delay (0–60 phút)
+        run: |
+          DELAY=$(( RANDOM % 3600 ))  # random từ 0–2000 giây
+          echo "🕐 Chờ $DELAY giây trước khi chạy..."
+          sleep $DELAY
 
       - name: Install dependencies
         run: |
